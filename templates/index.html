@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf" content="{{ csrf_token }}">
+  <meta name="max-mb" content="{{ max_mb }}">
+  <title>PixelVault · Secure Image Gallery</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%234f46e5'/%3E%3C/svg%3E">
+  <script src="{{ url_for('static', filename='theme.js') }}"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+{% include "_icons.html" %}
+
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand">
+      <span class="brand-mark"><svg class="icon"><use href="#i-layers"/></svg></span>
+      <span>PixelVault<small>Secure Image Gallery</small></span>
+    </div>
+    <div class="spacer"></div>
+    <span class="chip chip-ok" title="Block Public Access is ON for this bucket"><svg class="icon"><use href="#i-lock"/></svg>Private bucket</span>
+    <button class="btn-icon" id="themeToggle" type="button" aria-label="Toggle dark mode">
+      <svg class="icon i-sun"><use href="#i-sun"/></svg><svg class="icon i-moon"><use href="#i-moon"/></svg>
+    </button>
+    <span class="user-chip"><span class="avatar">{{ user[:1]|upper }}</span><span class="user-name">{{ user }}</span></span>
+    <form method="post" action="{{ url_for('logout') }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token }}">
+      <button class="btn-icon" type="submit" aria-label="Sign out" title="Sign out"><svg class="icon"><use href="#i-logout"/></svg></button>
+    </form>
+  </div>
+</header>
+
+<main class="container">
+  <div class="page-head">
+    <h1>Your library</h1>
+    <p class="muted">Images are stored privately in Amazon S3 and delivered through time-limited links.</p>
+  </div>
+
+  {% if load_error %}
+  <div class="alert error" role="alert"><svg class="icon"><use href="#i-alert"/></svg><span>{{ load_error }}</span></div>
+  {% endif %}
+
+  <section class="stats" aria-label="Library summary">
+    <div class="stat"><span class="stat-ico"><svg class="icon"><use href="#i-image"/></svg></span>
+      <div><div class="stat-label">Images</div><div class="stat-value" id="statCount">{{ images|length }}</div><div class="stat-sub">of {{ max_images }} allowed</div></div></div>
+    <div class="stat"><span class="stat-ico"><svg class="icon"><use href="#i-database"/></svg></span>
+      <div><div class="stat-label">Storage used</div><div class="stat-value" id="statSize">{{ total_size }}</div><div class="stat-sub">of {{ quota_mb }} MB</div></div></div>
+    <div class="stat"><span class="stat-ico ok"><svg class="icon"><use href="#i-shield"/></svg></span>
+      <div><div class="stat-label">Protection</div><div class="stat-value sm">Versioned &middot; Encrypted</div><div class="stat-sub" title="{{ bucket }}">{{ bucket }}</div></div></div>
+    <div class="stat"><span class="stat-ico"><svg class="icon"><use href="#i-clock"/></svg></span>
+      <div><div class="stat-label">Link validity</div><div class="stat-value">{{ ttl_min }} min</div><div class="stat-sub">Pre-signed URLs</div></div></div>
+  </section>
+
+  <section class="panel" aria-labelledby="uploadTitle">
+    <h2 id="uploadTitle" class="sr-only">Upload images</h2>
+    <label class="dropzone" id="dropzone" for="fileInput">
+      <span class="dz-ico"><svg class="icon"><use href="#i-upload"/></svg></span>
+      <span class="dz-title">Drag &amp; drop images here, or <u>browse</u></span>
+      <span class="dz-sub">PNG, JPG, GIF or WEBP &middot; up to {{ max_mb }} MB each</span>
+      <input class="sr-only" id="fileInput" type="file" multiple accept="image/png,image/jpeg,image/gif,image/webp">
+    </label>
+    <ul class="queue" id="queue" aria-live="polite"></ul>
+    <div class="queue-actions" id="queueActions" hidden>
+      <span class="muted" id="uploadStatus"></span>
+      <div class="spacer"></div>
+      <button class="btn btn-ghost" id="clearBtn" type="button">Clear</button>
+      <button class="btn btn-primary" id="uploadBtn" type="button"><svg class="icon"><use href="#i-upload"/></svg><span>Upload</span></button>
+    </div>
+  </section>
+
+  <section class="toolbar" id="toolbar" aria-label="Gallery controls">
+    <div class="section-title">Gallery <span class="badge" id="shownCount">{{ images|length }}</span></div>
+    <div class="spacer"></div>
+    <div class="search"><svg class="icon"><use href="#i-search"/></svg>
+      <input id="search" type="search" placeholder="Search images…" aria-label="Search images" autocomplete="off"></div>
+    <label class="select"><span class="sr-only">Sort by</span>
+      <select id="sort">
+        <option value="ts:desc">Newest first</option>
+        <option value="ts:asc">Oldest first</option>
+        <option value="name:asc">Name A–Z</option>
+        <option value="name:desc">Name Z–A</option>
+        <option value="size:desc">Largest first</option>
+        <option value="size:asc">Smallest first</option>
+      </select></label>
+    <div class="segmented compact" role="group" aria-label="Layout">
+      <button type="button" data-view="grid" aria-pressed="true" aria-label="Grid view"><svg class="icon"><use href="#i-grid"/></svg></button>
+      <button type="button" data-view="list" aria-pressed="false" aria-label="List view"><svg class="icon"><use href="#i-list"/></svg></button>
+    </div>
+  </section>
+
+  <div class="gallery" id="gallery">
+    {% for img in images %}
+    <article class="photo" data-id="{{ img.id }}" data-name="{{ img.name }}" data-size="{{ img.size }}" data-ts="{{ img.ts }}" data-url="{{ img.url }}">
+      <button class="photo-media" type="button" data-action="open" aria-label="Open {{ img.name }}">
+        <span class="skeleton"></span>
+        <img src="{{ img.url }}" alt="{{ img.name }}" loading="lazy" decoding="async">
+        <span class="broken-msg">Link expired &mdash; refresh the page</span>
+      </button>
+      <div class="photo-info">
+        <div class="photo-name" title="{{ img.name }}">{{ img.name }}</div>
+        <div class="photo-meta"><span>{{ img.size_label }}</span><span class="dot"></span><time class="js-ago" data-ts="{{ img.ts }}">{{ img.date_label }}</time></div>
+      </div>
+      <div class="photo-actions">
+        <button class="btn-icon sm" type="button" data-action="share" aria-label="Share {{ img.name }}" title="Get shareable link"><svg class="icon"><use href="#i-link"/></svg></button>
+        <button class="btn-icon sm danger" type="button" data-action="delete" aria-label="Delete {{ img.name }}" title="Delete"><svg class="icon"><use href="#i-trash"/></svg></button>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+
+  <div class="empty" id="emptyState" {% if images %}hidden{% endif %}>
+    <div class="empty-art"><svg class="icon"><use href="#i-image"/></svg></div>
+    <h3>No images yet</h3>
+    <p class="muted">Drop your first image in the box above. It will be stored privately in S3.</p>
+  </div>
+  <div class="empty" id="noResults" hidden>
+    <div class="empty-art"><svg class="icon"><use href="#i-search"/></svg></div>
+    <h3>No matches</h3>
+    <p class="muted">Try a different search term.</p>
+  </div>
+
+  <footer class="foot">
+    <span>Region <b>{{ region }}</b></span><span class="dot"></span>
+    <span>Access via IAM role &mdash; no stored credentials</span><span class="dot"></span>
+    <span>Deletions are recoverable (versioning)</span>
+  </footer>
+</main>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" hidden role="dialog" aria-modal="true" aria-label="Image viewer">
+  <div class="lb-top">
+    <div class="lb-title"><span id="lbName"></span><small id="lbMeta"></small></div>
+    <div class="lb-tools">
+      <button class="lb-btn" id="lbShare" type="button" aria-label="Get shareable link"><svg class="icon"><use href="#i-link"/></svg></button>
+      <button class="lb-btn" id="lbDelete" type="button" aria-label="Delete image"><svg class="icon"><use href="#i-trash"/></svg></button>
+      <button class="lb-btn" id="lbClose" type="button" aria-label="Close viewer"><svg class="icon"><use href="#i-x"/></svg></button>
+    </div>
+  </div>
+  <button class="lb-nav prev" id="lbPrev" type="button" aria-label="Previous image"><svg class="icon"><use href="#i-left"/></svg></button>
+  <figure class="lb-stage"><img id="lbImg" alt=""></figure>
+  <button class="lb-nav next" id="lbNext" type="button" aria-label="Next image"><svg class="icon"><use href="#i-right"/></svg></button>
+  <div class="lb-count" id="lbCount"></div>
+</div>
+
+<!-- Share dialog -->
+<dialog class="modal" id="shareDialog" aria-labelledby="shareTitle">
+  <div class="modal-inner">
+    <header class="modal-head"><h3 id="shareTitle">Share image</h3>
+      <button class="btn-icon sm" type="button" data-close aria-label="Close"><svg class="icon"><use href="#i-x"/></svg></button></header>
+    <p class="muted modal-sub" id="shareName"></p>
+    <fieldset class="segmented">
+      <legend>Link expires after</legend>
+      <label><input type="radio" name="minutes" value="5"><span>5 minutes</span></label>
+      <label><input type="radio" name="minutes" value="60" checked><span>1 hour</span></label>
+      <label><input type="radio" name="minutes" value="360"><span>6 hours</span></label>
+    </fieldset>
+    <div class="copy-field">
+      <input id="shareUrl" type="text" readonly aria-label="Shareable URL">
+      <button class="btn btn-primary" id="copyBtn" type="button"><svg class="icon"><use href="#i-copy"/></svg><span>Copy</span></button>
+    </div>
+    <p class="hint" id="shareHint"></p>
+    <div class="notice"><svg class="icon"><use href="#i-shield"/></svg>
+      <span>Anyone with this link can view the image until it expires. The bucket itself stays private.</span></div>
+  </div>
+</dialog>
+
+<!-- Delete dialog -->
+<dialog class="modal" id="deleteDialog" aria-labelledby="delTitle">
+  <div class="modal-inner">
+    <div class="del-ico"><svg class="icon"><use href="#i-trash"/></svg></div>
+    <h3 id="delTitle">Delete this image?</h3>
+    <p class="muted" id="delName"></p>
+    <p class="muted small">It will be removed from the gallery. Because S3 versioning is enabled, the previous version is retained and an administrator can restore it.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" type="button" data-close>Cancel</button>
+      <button class="btn btn-danger" id="delConfirm" type="button">Delete</button>
+    </div>
+  </div>
+</dialog>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in · PixelVault</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%234f46e5'/%3E%3C/svg%3E">
+  <script src="{{ url_for('static', filename='theme.js') }}"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+{% include "_icons.html" %}
+<main class="auth">
+  <aside class="auth-aside">
+    <div class="brand light">
+      <span class="brand-mark"><svg class="icon"><use href="#i-layers"/></svg></span>
+      <span>PixelVault</span>
+    </div>
+    <div class="aside-copy">
+      <h1>Your images,<br>privately stored.</h1>
+      <p>A secure gallery built on Amazon S3 with role-based access and time-limited sharing links.</p>
+      <ul class="feature-list">
+        <li><svg class="icon"><use href="#i-lock"/></svg><span><b>Private by default</b> &mdash; the bucket blocks all public access.</span></li>
+        <li><svg class="icon"><use href="#i-shield"/></svg><span><b>Least-privilege IAM</b> &mdash; the server uses a scoped EC2 role, no stored keys.</span></li>
+        <li><svg class="icon"><use href="#i-clock"/></svg><span><b>Expiring links</b> &mdash; share an image for minutes, not forever.</span></li>
+      </ul>
+    </div>
+    <div class="aside-foot">Amazon S3 &middot; IAM &middot; EC2</div>
+  </aside>
+
+  <section class="auth-main">
+    <form class="auth-card" method="post" action="{{ url_for('login') }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token }}">
+      <h2>Welcome back</h2>
+      <p class="muted">Sign in to manage your image library.</p>
+
+      {% if error %}
+      <div class="alert error" role="alert"><svg class="icon"><use href="#i-alert"/></svg><span>{{ error }}</span></div>
+      {% endif %}
+
+      <div class="field">
+        <label for="username">Username</label>
+        <div class="input-wrap">
+          <svg class="icon lead"><use href="#i-user"/></svg>
+          <input id="username" name="username" type="text" autocomplete="username" required autofocus>
+        </div>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <div class="input-wrap">
+          <svg class="icon lead"><use href="#i-lock"/></svg>
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+          <button class="reveal" type="button" id="reveal" aria-label="Show password">
+            <svg class="icon eye"><use href="#i-eye"/></svg>
+          </button>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" type="submit" id="loginBtn">Sign in</button>
+      <p class="auth-switch">New to PixelVault? <a href="{{ url_for('register') }}">Create an account</a></p>
+      <p class="auth-note"><svg class="icon"><use href="#i-shield"/></svg>Session expires automatically after 2 hours.</p>
+    </form>
+  </section>
+</main>
+<script src="{{ url_for('static', filename='login.js') }}"></script>
+</body>
+</html>
