@@ -1,6 +1,6 @@
 #!/bin/bash
 # PixelVault multi-user upgrade. Run on the EC2 instance as ec2-user:
-#   INVITE_CODE='choose-a-code' bash upgrade.sh        (INVITE_CODE is optional; omit for open sign-up)
+INVITE_CODE='pixelvaultsignin' bash upgrade.sh        (INVITE_CODE is optional; omit for open sign-up)
 set -euo pipefail
 
 sudo cp -n /opt/gallery/app.py /opt/gallery/app.py.single-user.bak 2>/dev/null || true
