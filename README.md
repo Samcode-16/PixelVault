@@ -172,7 +172,7 @@ Set in `/etc/gallery.env` on the server.
 
 ## Admin commands
 
-Run inside `/opt/gallery` after loading the environment (`set -a; . /etc/gallery.env; set +a`):
+Run inside `/opt/gallery` after loading the environment (`set -a; source <(sudo cat /etc/gallery.env); set +a`):
 
 ```bash
 venv/bin/flask --app app adopt-legacy admin     # move pre-accounts images into the admin user
@@ -189,7 +189,7 @@ venv/bin/flask --app app migrate-sqlite         # one-time copy from the old SQL
 
 ## Author
 
-**Samudyatha K Bhat** 
-· Cloud Computing SA project
+**Samudyatha K Bhat** - BCA, 5th semester · Reg. no. **24UG00225**
+School of Engineering, Chanakya University · Cloud Computing SA project
 
-*Educational project*
+*Educational project. Add a `LICENSE` file before reusing the code elsewhere.*

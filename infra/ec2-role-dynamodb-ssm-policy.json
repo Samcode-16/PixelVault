@@ -1,0 +1,18 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PixelVaultTable",
+      "Effect": "Allow",
+      "Action": ["dynamodb:DescribeTable", "dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem",
+                 "dynamodb:DeleteItem", "dynamodb:BatchWriteItem", "dynamodb:Query", "dynamodb:Scan"],
+      "Resource": "arn:aws:dynamodb:ap-south-2:YOUR-ACCOUNT-ID:table/PixelVault"
+    },
+    {
+      "Sid": "ReadCloudFrontSigningKey",
+      "Effect": "Allow",
+      "Action": "ssm:GetParameter",
+      "Resource": "arn:aws:ssm:ap-south-2:YOUR-ACCOUNT-ID:parameter/pixelvault/cloudfront-private-key"
+    }
+  ]
+}
